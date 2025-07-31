@@ -1,0 +1,72 @@
+blueprint:
+  name: Lutron Aurora Dimmer Control for Light Group
+  description: Uses MQTT messages from Zigbee2MQTT for a Lutron Aurora dimmer to control a light or light group leveraging the Home Assistant legacy_action_sensor setting.
+  domain: automation
+  input:
+    mqtt_topic:
+      name: MQTT Topic
+      description: Full Zigbee2MQTT topic for the Aurora device, this should be the entity name in Home Assistant (e.g., zigbee2mqtt/Basement Lights Switch)
+      selector:
+        text:
+
+    target_light:
+      name: Light or Light Group
+      description: The light or group to be controlled by the dimmer.
+      selector:
+        target:
+          entity:
+            domain: light
+
+    transition_duration:
+      name: Transition Duration (in seconds)
+      description: Transition time to used when changing brightness levels (default: 1)
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 5
+          step: 0.1
+          unit_of_measurement: seconds
+          mode: slider
+
+mode: queued
+max_exceeded: silent
+
+trigger:
+  - platform: mqtt
+    topic: !input mqtt_topic
+    value_template: "{{ value_json.action }}"
+    payload: brightness_move_to_level
+
+variables:
+  action: "{{ trigger.payload_json.action }}"
+  action_level: "{{ trigger.payload_json.action_level | int(0) }}"
+  transition_time: "{{ transition_duration | float(1.0) }}"
+
+action:
+  - choose:
+      # CASE 1: Turn off when brightness is 0
+      - conditions:
+          - condition: template
+            value_template: "{{ action_level == 0 }}"
+        sequence:
+          - service: light.turn_off
+            target: !input target_light
+
+      # CASE 2: Turn on when brightness is 255
+      - conditions:
+          - condition: template
+            value_template: "{{ action_level == 255 }}"
+        sequence:
+          - service: light.turn_on
+            target: !input target_light
+            data:
+              brightness: 255
+
+    # CASE 3: Smooth brightness change (dial turn)
+    default:
+      - service: light.turn_on
+        target: !input target_light
+        data:
+          brightness: "{{ action_level }}"
+          transition: "{{ transition_time }}"
