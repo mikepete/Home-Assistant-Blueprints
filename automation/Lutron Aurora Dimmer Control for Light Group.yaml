@@ -39,7 +39,7 @@ max_exceeded: silent
 
 trigger:
   - platform: mqtt
-    topic: !input mqtt_topic
+    topic: zigbee2mqtt/!input mqtt_topic
     value_template: "{{ value_json.action }}"
     payload: brightness_move_to_level
 
