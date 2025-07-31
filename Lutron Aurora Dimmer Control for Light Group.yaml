@@ -24,7 +24,7 @@ blueprint:
     transition_duration:
       name: Transition Duration (in seconds)
       description: >
-        Transition time to use when changing brightness levels (default: 1)
+        Transition time to use when changing brightness levels, default is 1 second
       default: 1
       selector:
         number:
